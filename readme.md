@@ -1,4 +1,4 @@
-# Thesis: Physics of Data
+# Master's Thesis
 ![alt text](images/ThesisBanner.jpeg)
 I enjoy applying novel techniques to help overcome technical limitations and enable new science. This is in essence the heart of my [Master’s thesis](Thesis_Jackson_Jake.pdf). In which, the population synthesis code SEVN, can be emulated through the technique of Normalizing Flows. Normalizing Flows are a type of generative model that employs highly accurate and invertible distributions for sampling and density evaluation in an efficient manner. This was successfully applied to the SEVN generated binary black hole mergers and optimized in my thesis allowing for rapid sampling and hyperparameter likelihood estimation.  This project was a collaboration between the DEMOBLACK group, the University of Padova, and the University of Michigan.  
 
