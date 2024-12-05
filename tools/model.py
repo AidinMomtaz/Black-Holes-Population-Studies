@@ -65,9 +65,9 @@ def train(info= False, return_info = False):
         torch_s = torch.from_numpy(s).float()
         torch_c = torch.from_numpy(c).float()
 
-        if not info['dataloader']:
-            torch_s = torch.to(device) 
-            torch_c = torch.to(device)
+        #if not info['dataloader']:
+        #    torch_s = torch.to(device) 
+        #    torch_c = torch.to(device)
         return Nsim, Nevent, Ndim, torch_s.reshape(Nsim*Nevent, Ndim), torch_c.reshape(Nsim_c*Nevent_c, Ndim_c)
 
     # This way we all into RAM and then split in dataloader (Faster on our hardware)
@@ -89,10 +89,10 @@ def train(info= False, return_info = False):
         
         train_ds = mk_Dataset(info['training_file'])
         train_loader = DataLoader(train_ds, 
-                batch_size=info['batch_size'],
-                num_workers=info['workers'],
-                pin_memory=info['PIN_MEM'],
-                shuffle=False)
+                       batch_size=info['batch_size'],
+                       num_workers=info['workers'],
+                       pin_memory=info['PIN_MEM'],
+                       shuffle=False)
         """
         valid_ds = mk_Dataset(info['training_file'])
         valid_loader = DataLoader(valid_ds, 
@@ -235,17 +235,26 @@ def train(info= False, return_info = False):
     np.savez(loss_path,train_loss=train_loss,valid_loss=valid_loss, config=info['MAFconfig'])
 
     runtime = t_time()-start
-    info['final_loss'] = float(valid_loss[-1])
+    info['final_loss'] = valid_loss[-1]
     info['loss_path'] = loss_path
     info['runtime'] = runtime
+    
+    for key in info.keys():
+        if isinstance(info[key], (np.ndarray, torch.Tensor)):
+            info[key] = info[key].tolist()
+        elif isinstance(info[key], float):
+            info[key] = str(info[key])  
 
     from json import dump as jdump
-    json_path = join(info['outdir'], info['label']+'.json')
-    with open(json_path, 'w') as f:
+    from pathlib import Path
+    json_path = Path(info['outdir'], f"{info['label']}.json")
+    print(info)
+    with open (json_path, 'w') as f:
+        pass
         jdump(info, f)
-
+    
     print('Time used for training:{} s'.format(runtime))
-    print('run infomation saved to', json_path)
+    print('run information saved to', json_path)
 
     if return_info is not False:
         return info
@@ -305,7 +314,7 @@ def prep_model(info, device = 'cpu', lr = 1e-3, weight_decay=1e-4):
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     return model, device, optimizer
 
-def sample_run(info, ref_data = 'BHBHm_Tr_0.6_Va_0.2_Te_0.2_test.pq'):
+def sample_run(info, ref_data = 'test.pq'):
     from tools.tuning import get_run
     from tools.constants import data_dir
     from os.path import join

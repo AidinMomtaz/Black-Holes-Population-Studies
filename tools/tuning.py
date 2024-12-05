@@ -22,20 +22,20 @@ def run_combinations(params, outdir, time = False):
     results = []
     for i,  run in enumerate(combinations): #loop through unique combinations of parameters
         run_no+=1
-        out_label = "_".join([f'{k}_{run[k]}' for k in run])
+        out_label = "_".join([f'{k}_{run[k]}' for k in run if k != 'outdir'])
         run['label'] = out_label
         
-        try:
-            output_dict = train(run, return_info=True)
-        except:
-            print(f'Run {out_label} Failed')
-            if i==0: best_info_path = join(params['outdir'][0], f'{out_label}{json_time_lb}.json')
-            break
+        # try:
+        output_dict = train(run, return_info=True)
+        # except:
+           # print(f'Run {out_label} Failed')
+           # if i==0: best_info_path = join(params['outdir'][0], f'{out_label}{json_time_lb}.json')
+           # break
 
         results.append([run,output_dict['best_loss']])
         if output_dict['best_loss'] < best_run_loss:
             best_run_loss = output_dict['best_loss']
-            best_run= run
+            best_run = run
             best_info_path = join(params['outdir'][0], f'{out_label}{json_time_lb}.json')
     
     return results, best_info_path
@@ -100,25 +100,54 @@ def get_matches(path, attributes, criteria = '=='):
             matches.append(js)
     return matches
 
-def get_best_run(path, log = False):
-    #Get the best run (lowest loss) from a directory
-    #Loads dictionary need to run 
+def get_best_run(path, log=False):
+    """
+    Get the best run (lowest loss) from a directory of JSON files.
+    """
     from json import load as json_load
+    import os
 
-    all_files= get_all_files(path)
+    
+    all_files = get_all_files(path)
     all_json = [f for f in all_files if f.endswith('.json') and 'pq_trial' not in f]
-    best_run_loss = 9999
+
+    # Initialize variables for tracking the best run
+    best_run_loss = float('inf')
     final_loss_key = 'best_loss'
-    for f in all_json: 
-        json_f = open(f)
-        info = json_load(json_f)
-        if log == info['log']:
-            if final_loss_key not in json_f:
-                final_loss_key = 'final_loss'
+    best_run_info = None
+
+    # Iterate through all JSON files
+    for f in all_json:
+        if 'V2' in f:
+            continue
+        with open(f, 'r') as json_f:
+            info = json_load(json_f)
+
+        
+        if 'log' not in info:
+            print(f"{f}: Missing 'log' key")
+            info['log'] = False
+
+        # Match 'log' value if required
+        if log and log != info['log']:
+            continue
+
+        
+        if final_loss_key not in info:
+            final_loss_key = 'final_loss'
+
+        
+        if final_loss_key in info and info[final_loss_key] < best_run_loss:
             best_run_loss = info[final_loss_key]
             best_run_info = info
-            print('Best run loss',  best_run_loss)
+            print(f"New best run found: Loss = {best_run_loss}")
+            print(info)
+
+    if best_run_info is None:
+        print("No valid runs found.")
+
     return best_run_info
+
 
 def get_search_labels(params):
     from itertools import product
@@ -145,7 +174,7 @@ def get_search(path, params):
 
 # Results tools
 def sf_round(num):
-    return float('%.3g' % num)
+    return float('%.3g' % float(num))
 
 def get_results_table(path, params):
     from pandas import DataFrame as pd_df
@@ -260,10 +289,10 @@ def run_combinations_CMD(params, outdir, time = False):
             config_cmds += f' -time {time}'
             json_time_lb =f'_{time}min'
             
-        #print('Run: '+ str(run_no)+', Label: ' +  out_label)
+        print('Run: '+ str(run_no)+', Label: ' +  out_label)
         cmd += f'{config_cmds} -label {out_label} '
-        print(cmd)
-        !python ../nf_train.py $cmd
+        import subprocess
+        subprocess.run(f'python ../nf_train.py {cmd}')
 
         # Running the training script will generate a json that we open
         json_path = p_join(outdir, f'{out_label}{json_time_lb}.json')

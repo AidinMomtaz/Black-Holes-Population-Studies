@@ -5,7 +5,7 @@
 from tools.constants import defaults as D
 from tools.model import train
 from argparse import ArgumentParser
-
+print(D)
 parser = ArgumentParser(description='NF training')
 #See tools/constants.py for defaults
 parser.add_argument("-sample_cols", help = "sample_cols", default =D['sample_cols'])
@@ -47,4 +47,5 @@ for bl_key in ['early_stop', 'dataloader', 'PIN_MEM']:
     info[bl_key]=bool_fix(info[bl_key])
 
 # Train the model:
+print(info['training_file'])
 train(info)
