@@ -40,7 +40,7 @@ def plot_test_data(info):
     ax[1].set_xlabel('Mass')
     
 
-def plot_results(df, info, kind='scatter'):
+def plot_results(df, info, kind='scatter', savefolder = '.'):
     if kind =='scatter':
         fig, ax = plt.subplots(figsize=(15,7), ncols=2)
         df.plot.scatter(ax=ax[0], x='Mass_0',y='Mass_1', c='DarkBlue', alpha = 0.01, xlabel= 'Mass 0', ylabel= 'Mass 1')
@@ -59,7 +59,7 @@ def plot_results(df, info, kind='scatter'):
         ax[1].set_xlabel('Mass 0')
         ax[1].set_ylabel('Mass 1')
         plt.subplots_adjust(wspace=0.1, hspace=0)
-        plt.savefig('/home/melika/Pictures/Thesis_OLD2NEW', bbox_inches='tight')
+        plt.savefig(savefolder, bbox_inches='tight')
 
         print('Mass > 100 =',(len(data_masking(df, 'Mass_0>100'))+len(data_masking(df, 'Mass_1>100')))/len(df), '%')
         print('Mass < 0 =',(len(data_masking(df, 'Mass_0<0'))+len(data_masking(df, 'Mass_1<0')))/len(df), '%')
