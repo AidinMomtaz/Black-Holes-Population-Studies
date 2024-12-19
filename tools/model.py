@@ -328,7 +328,7 @@ def sample_run(info, ref_data = 'test.pq'):
     model.eval() # evaluate mode
 
     df_test = pd.read_parquet(join(data_dir, ref_data))
-    s1= np.array(df_test[['Mass_0','Mass_1']].values)
+    s1= np.array(df_test[['Mass_0','q']].values)
 
     pop_para = np.array(df_test[['Z','alpha']].values)
                               
@@ -341,7 +341,7 @@ def sample_run(info, ref_data = 'test.pq'):
 
     # sample from NF model
     s2 = model.sample(num_samples=len(pop_para), cond_inputs=b).detach().cpu().numpy()
-    df_NF=pd.DataFrame(data=np.column_stack([s2,b]), index=None, columns=['Mass_0','Mass_1','Z','alpha'])
+    df_NF=pd.DataFrame(data=np.column_stack([s2,b]), index=None, columns=['Mass_0','q','Z','alpha'])
     return df_NF 
 
 def eval_likelihood(info, samples, pop_parameters):

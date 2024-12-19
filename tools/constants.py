@@ -15,9 +15,9 @@ alphas =  [0.5, 1. , 3. , 5. ]
 
 # Default values: set here so the training runs the same with or without argparse
 defaults = {# Training Parameters -----------------------------------------------------------------
-            'sample_cols' : ['Mass_0', 'Mass_1'], # Sample columns 
+            'sample_cols' : ['Mass_0', 'q'], # Sample columns 
             'pop_cols' : ['Z', 'alpha'],          # Population parameters
-            'epochs' : 100,                       # Number of epochs
+            'epochs' : 300,                       # Number of epochs
             'A': 'tanh',                          # Activation Function
             'blocks' : 10,                        # Number of Blocks
             'hidden': 128,                        # Number of Hidden layers
@@ -26,7 +26,7 @@ defaults = {# Training Parameters ----------------------------------------------
             'time' :False,                        # Max runtime
             
             # Hardware Config---------------------------------------------------------------------
-            'device' :'cpu',                     # Torch Device :'cpu', 'cuda', 'mps' ...
+            'device' :'cuda',                     # Torch Device :'cpu', 'cuda', 'mps' ...
             'dataloader' : False,                  # Use Dataloader True/False
             'batch_size' : 150000,                # Dataloader batch size
             'workers' : 1,                        # Dataloader Workers
