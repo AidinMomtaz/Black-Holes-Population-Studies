@@ -314,33 +314,37 @@ def prep_model(info, device = 'cpu', lr = 1e-3, weight_decay=1e-4):
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     return model, device, optimizer
 
-def sample_run(info, ref_data = 'test.pq'):
+def sample_run(info, hyperparams, ref_data = 'test.pq', n_samples = 10000):
     from tools.tuning import get_run
     from tools.constants import data_dir
     from os.path import join
     import numpy as np
     import torch
     import pandas as pd
+    from figaro.transform import transform_from_probit
 
     if isinstance(info, str):info=get_run(info)
 
     model, device, optimizer = prep_model(info)
     model.eval() # evaluate mode
-
-    df_test = pd.read_parquet(join(data_dir, ref_data))
-    s1= np.array(df_test[['Mass_0','q']].values)
-
-    pop_para = np.array(df_test[['Z','alpha']].values)
+    
+    pop_para = np.array([np.ones(int(n_samples))*hyperparams[0],np.ones(int(n_samples))*hyperparams[1]]).T
                               
     #Needs Initialization 
     event = np.repeat([[0,0]], len(pop_para), axis=0)
 
     a = torch.from_numpy(event).float().to(device)# event what
     b = torch.from_numpy(pop_para).float().to(device)
-    print(model.log_probs(a, b)) 
+    model.log_probs(a, b)
 
     # sample from NF model
-    s2 = model.sample(num_samples=len(pop_para), cond_inputs=b).detach().cpu().numpy()
+    s2 = transform_from_probit(model.sample(num_samples=len(pop_para), cond_inputs=b).detach().cpu().numpy(), np.array([[0, 100], [0, 1.01]]))
+    print("pop_para:", pop_para.shape)
+    print("b:", b.shape)
+    
+    print("Transformed output (s2):", s2.shape)
+
+    #s2 = model.sample(num_samples=len(pop_para), cond_inputs=b).detach().cpu().numpy()
     df_NF=pd.DataFrame(data=np.column_stack([s2,b]), index=None, columns=['Mass_0','q','Z','alpha'])
     return df_NF 
 

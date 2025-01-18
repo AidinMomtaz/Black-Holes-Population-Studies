@@ -17,7 +17,7 @@ alphas =  [0.5, 1. , 3. , 5. ]
 defaults = {# Training Parameters -----------------------------------------------------------------
             'sample_cols' : ['Mass_0', 'q'], # Sample columns 
             'pop_cols' : ['Z', 'alpha'],          # Population parameters
-            'epochs' : 300,                       # Number of epochs
+            'epochs' : 1000,                       # Number of epochs
             'A': 'tanh',                          # Activation Function
             'blocks' : 10,                        # Number of Blocks
             'hidden': 128,                        # Number of Hidden layers
@@ -26,7 +26,7 @@ defaults = {# Training Parameters ----------------------------------------------
             'time' :False,                        # Max runtime
             
             # Hardware Config---------------------------------------------------------------------
-            'device' :'cuda',                     # Torch Device :'cpu', 'cuda', 'mps' ...
+            'device' : 'cpu',                     # Torch Device :'cpu', 'cuda', 'mps' ...
             'dataloader' : False,                  # Use Dataloader True/False
             'batch_size' : 150000,                # Dataloader batch size
             'workers' : 1,                        # Dataloader Workers
