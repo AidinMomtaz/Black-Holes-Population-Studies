@@ -1,8 +1,7 @@
-numpy<2,>1.22
+numpy>1.22
 scipy
 matplotlib!=3.6.3
 dill
 corner
-numba
 h5py
 tqdm

@@ -390,7 +390,7 @@ def test_likelihood(info, hyperparams = [0.0001, 0.5], m_range = (0, 80)):
     m = np.linspace(m_range[0],m_range[1], num=300)
     M1, M2 = np.meshgrid(m, m)
     data = np.vstack((M1.flatten(), M2.flatten())).T
-    hyperparams = np.repeat([hyperparams], len(data), axis =0)
+    hyperparams =np.repeat([hyperparams], len(data), axis =0)
     likelihood=eval_likelihood(info, np.array([data]), np.array([hyperparams]))
     return hyperparams, data[:, 0], data[:, 1], likelihood
 
