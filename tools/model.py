@@ -301,7 +301,7 @@ def train_from_prev(path, params):
     
     return match_dict
 
-def prep_model(info, device = 'cpu', lr = 1e-3, weight_decay=1e-4):
+def prep_model(info, device = 'cuda', lr = 1e-3, weight_decay=1e-4):
     #cpu more stable for sampling
 
     import torch
@@ -351,7 +351,7 @@ def eval_likelihood(info, samples, pop_parameters):
     from torch import nn
     from tools.flows import MAF,BatchNormFlow
     from tqdm import tqdm
-    import pandas as pd
+    import pandas as pd 
 
     
 
@@ -385,6 +385,194 @@ def eval_likelihood(info, samples, pop_parameters):
         likelihood_log = model.log_probs(samples,pop_parameters)
 
     return np.exp(likelihood_log.cpu().detach().numpy())
+
+def eval_likelihood_test(model, samples, pop_parameters):
+    import numpy as np
+    import torch
+    from torch import nn
+    from tools.flows import MAF,BatchNormFlow
+    from tqdm import tqdm
+    import pandas as pd 
+
+    
+
+    #if isinstance(info, str):info=get_run(info)
+
+    def array_transform(samples, pop_parameters):
+        #lighter verison for just loading in data already loaded
+        s = samples
+        c = pop_parameters
+
+        Nsim, Nevent, Ndim = s.shape
+        # convert to tensor form and to the device being used ( cpu or gpu )
+        torch_s = torch.from_numpy(s).float()
+        torch_c = torch.from_numpy(c).float()
+        return Nsim, Nevent, Ndim, torch_s.reshape(Nsim*Nevent, Ndim), torch_c.reshape(Nsim*Nevent, Ndim)
+
+    Nsim_train, Nevent_train, Ndim, torch_s, torch_c = array_transform(samples, pop_parameters)
+
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    
+
+    with torch.no_grad():model(samples, pop_parameters)
+        
+    for module in model.modules():
+        if isinstance(module, BatchNormFlow):
+            module.momentum = 1
+                    
+    # calculate validation loss
+    with torch.no_grad():
+        likelihood_log = model.log_probs(samples,pop_parameters)
+
+    return np.exp(likelihood_log.cpu().detach().numpy())
+
+
+
+def eval_likelihood_inference(model, samples, pop_parameters):
+    import numpy as np
+    import torch
+    from tools.flows import BatchNormFlow
+    from figaro.transform import transform_to_probit
+
+   
+    
+
+    # Define bounds for each parameter (same order as input dims)
+    sample_bounds = np.array([[0.5, 100.0], [0.01, 1.]])        # [mass_1, mass_ratio]
+    pop_bounds    = np.array([[0.5, 5.0], [0.0001, 0.03]])       # [alpha, Z]
+
+    def clip_parameters(params, bounds, epsilon=1e-6):
+    # Clip slightly inside the bounds
+        return np.clip(params, bounds[:, 0] + epsilon, bounds[:, 1] - epsilon)
+
+    pop_parameters = clip_parameters(pop_parameters, pop_bounds)
+    samples = clip_parameters(samples, sample_bounds)
+
+    
+
+    # Transform samples to probit space
+    samples = transform_to_probit(samples, sample_bounds)
+
+    
+
+
+   
+
+    
+   
+
+    # Flatten and convert to torch
+    Nsim, Nevent, Ndim = samples.shape
+    NsimNevent = Nsim * Nevent
+    torch_s = torch.from_numpy(samples).float().reshape(NsimNevent, Ndim)
+    torch_c = torch.from_numpy(pop_parameters).float().reshape(NsimNevent, Ndim)
+
+    
+
+
+   
+
+    # Send to GPU
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    torch_s = torch_s.to(device)
+    torch_c = torch_c.to(device)
+
+    
+
+    # Ensure proper eval mode
+    model.eval()
+    for module in model.modules():
+        if isinstance(module, BatchNormFlow):
+            module.eval()
+            module.momentum = 1.0
+
+    # (Optional) dummy forward call
+    with torch.no_grad():
+        _ = model(torch_s, torch_c)
+
+   #check for -inf values for both torch tensors
+    if torch.isinf(torch_s).any() or torch.isinf(torch_c).any():
+        raise ValueError("Infinite values detected in input tensors!")
+    #check for NaNs for both torch tensors
+    if torch.isnan(torch_s).any() or torch.isnan(torch_c).any():
+        raise ValueError("NaN values detected in input tensors!")
+    print(torch_s.shape, torch_c.shape)
+        
+
+    # Evaluate log-likelihood
+    with torch.no_grad():
+        likelihood_log = model.log_probs(torch_s, cond_inputs = torch_c)
+        if torch.isnan(likelihood_log).any():
+            print("⚠️ NaNs detected in log_probs!")
+        print("likelihood_log stats — min:", likelihood_log.min().item(),
+              "max:", likelihood_log.max().item(),
+              "mean:", likelihood_log.mean().item())
+
+    # Convert to density
+    result = torch.exp(likelihood_log).detach().cpu().numpy()
+    return result
+
+
+
+
+
+
+def eval_likelihood_inference_1(model, samples, pop_parameters, device=None):
+    import numpy as np
+    import torch
+    from torch.cuda.amp import autocast
+    import time
+
+    # Choose device
+    if device is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    model.to(device)
+
+    # Only set batchnorm momentum once (assuming this func called multiple times)
+    for module in model.modules():
+        if hasattr(module, "momentum"):
+            module.momentum = 1
+
+    # Transform numpy arrays to flattened torch tensors
+    def array_transform(samples_np, pop_params_np):
+        Nsim, Nevent, Ndim = samples_np.shape
+        s = torch.from_numpy(samples_np).float().reshape(Nsim * Nevent, Ndim)
+        c = torch.from_numpy(pop_params_np).float().reshape(Nsim * Nevent, Ndim)
+        return s.to(device), c.to(device)
+
+    start_total = time.time()
+
+    start_transform = time.time()
+    samples_tensor, pop_parameters_tensor = array_transform(samples, pop_parameters)
+    end_transform = time.time()
+    print(f"[Transform] {end_transform - start_transform:.4f}s")
+
+    # Use autocast for mixed precision
+    start_forward = time.time()
+    with torch.no_grad(), autocast():
+        model(samples_tensor, pop_parameters_tensor)
+    end_forward = time.time()
+    print(f"[Forward pass] {end_forward - start_forward:.4f}s")
+
+    start_logprobs = time.time()
+    with torch.no_grad(), autocast():
+        log_probs = model.log_probs(samples_tensor, pop_parameters_tensor)
+    end_logprobs = time.time()
+    print(f"[Log probs] {end_logprobs - start_logprobs:.4f}s")
+
+    start_result = time.time()
+    result = torch.exp(log_probs).cpu().numpy()
+    end_result = time.time()
+    print(f"[To numpy] {end_result - start_result:.4f}s")
+
+    print(f"[Total time] {end_result - start_total:.4f}s")
+    return result
+
+
 
 def test_likelihood(info, hyperparams = [0.0001, 0.5], m_range = (0, 80)):
     m = np.linspace(m_range[0],m_range[1], num=300)

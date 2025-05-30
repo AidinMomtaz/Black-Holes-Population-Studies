@@ -355,30 +355,57 @@ class FlowSequential(nn.Sequential):
 	"""
 
 	def forward(self, inputs, cond_inputs=None, mode='direct', logdets=None):
-		""" Performs a forward or backward pass for flow modules.
-		Args:
-			inputs: a tuple of inputs and logdets
-			mode: to run direct computation or inverse
-		"""
 		self.num_inputs = inputs.size(-1)
 
 		if logdets is None:
 			logdets = torch.zeros(inputs.size(0), 1, device=inputs.device)
 
 		assert mode in ['direct', 'inverse']
-		if mode == 'direct':
-			for module in self._modules.values():
-				inputs, logdet = module(inputs, cond_inputs, mode)
-				logdets += logdet
-		else:
-			for module in reversed(self._modules.values()):
-				inputs, logdet = module(inputs, cond_inputs, mode)
-				logdets += logdet
+
+		modules = self._modules.values() if mode == 'direct' else reversed(self._modules.values())
+
+		for i, module in enumerate(modules):
+			if torch.isnan(inputs).any():
+				print(f"NaN detected in inputs before module {i} ({module.__class__.__name__})")
+				raise ValueError("NaN before module")
+
+			inputs, logdet = module(inputs, cond_inputs, mode)
+
+			if torch.isnan(inputs).any():
+				print(f"NaN in outputs after module {i} ({module.__class__.__name__})")
+				raise ValueError("NaN in inputs after module")
+
+			if torch.isnan(logdet).any():
+				print(f"NaN in logdet after module {i} ({module.__class__.__name__})")
+				raise ValueError("NaN in logdet")
+
+			logdets += logdet
 
 		return inputs, logdets
 
+
 	def log_probs(self, inputs, cond_inputs = None):
+
+		# see if nan in inputs or cond_inputs
+		if torch.isnan(inputs).any():
+			print(inputs[torch.isnan(inputs)])
+			print(torch.isnan(inputs).sum())
+			raise ValueError('Nan in inputs')
+		if cond_inputs is not None and torch.isnan(cond_inputs).any():
+			print(cond_inputs[torch.isnan(cond_inputs)])
+			print(torch.isnan(cond_inputs).sum())
+			raise ValueError('Nan in cond_inputs')
+			
 		u, log_jacob = self(inputs, cond_inputs)
+		
+		if torch.isnan(u).any():
+			print(inputs[torch.isnan(u)])
+			print(torch.isnan(u).sum())
+			raise ValueError('Nan in u')
+		if torch.isnan(log_jacob).any():
+			raise ValueError('Nan in log_jacob')
+			
+		
 		log_probs = (-0.5 * u.pow(2) - 0.5 * math.log(2 * math.pi)).sum(
 			-1, keepdim=True)
 		return (log_probs + log_jacob).sum(-1, keepdim=True)
