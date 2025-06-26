@@ -169,6 +169,9 @@ class MADE(nn.Module):
 		if mode == 'direct':
 			h = self.joiner(inputs, cond_inputs)
 			m, a = self.trunk(h).chunk(2, 1)
+			if torch.isnan(a).any():
+				print("NaNs in `a` before exp (mode='direct')")
+				raise ValueError("NaNs in `a` before exp")
 			u = (inputs - m) * torch.exp(-a)
 			return u, -a.sum(-1, keepdim=True)
 
@@ -177,6 +180,9 @@ class MADE(nn.Module):
 			for i_col in range(inputs.shape[1]):
 				h = self.joiner(x, cond_inputs)
 				m, a = self.trunk(h).chunk(2, 1)
+				if torch.isnan(a).any():
+					print(f"NaNs in `a` before exp (mode='inverse'), i_col={i_col}")
+					raise ValueError("NaNs in `a` before exp")
 				x[:, i_col] = inputs[:, i_col] * torch.exp(
 					a[:, i_col]) + m[:, i_col]
 			return x, -a.sum(-1, keepdim=True)

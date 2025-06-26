@@ -15,7 +15,7 @@ import torch
 from numba import njit
 
 
-run_path=join(root_dir, 'tuning', 'test','blocks_20_hidden_128_A_relu_N_1500.json')
+run_path=join(root_dir, 'tuning', 'test','blocks_20_hidden_128_A_relu_N_2600.json')
 
 info = get_run(run_path)
 print(info)
@@ -160,6 +160,6 @@ if __name__ == '__main__':
 
 
     
-    opt_pars = minimize(log_likelihood, [3.0, 1. , 1e-3], method='powell', bounds=[(-4, 8), (0.5, 5), (0.0001, 0.1)], args=(events, pe_prior, injections, inj_pdf, n_total_inj))
+    opt_pars = minimize(log_likelihood, [3.0, 1. , 1e-3], method='powell', bounds=[(-4, 8), (0.5, 4.6), (0.0001, 0.1)], args=(events, pe_prior, injections, inj_pdf, n_total_inj))
     print(opt_pars)
 

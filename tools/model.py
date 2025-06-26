@@ -342,7 +342,8 @@ def sample_run(info, hyperparams, ref_data = 'test.pq', n_samples = 10000):
     #s2 = model.sample(num_samples=len(pop_para), cond_inputs=b).detach().cpu().numpy()
 
     
-    df_NF=pd.DataFrame(data=np.column_stack([s2,b]), index=None, columns=['Mass_0','q','Z','alpha'])
+    df_NF=df_NF = pd.DataFrame(data=np.column_stack([s2, b.detach().cpu().numpy()]), index=None, columns=['Mass_0','q','Z','alpha'])
+
     return df_NF 
 
 def eval_likelihood(info, samples, pop_parameters):

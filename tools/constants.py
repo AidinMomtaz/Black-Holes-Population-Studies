@@ -17,7 +17,7 @@ alphas =  [0.5, 1. , 3. , 5. ]
 defaults = {# Training Parameters -----------------------------------------------------------------
             'sample_cols' : ['Mass_0', 'q'], # Sample columns 
             'pop_cols' : ['Z', 'alpha'],          # Population parameters
-            'epochs' : 2000,                       # Number of epochs
+            'epochs' : 2600,                       # Number of epochs
             'A': 'tanh',                          # Activation Function
             'blocks' : 10,                        # Number of Blocks
             'hidden': 128,                        # Number of Hidden layers
